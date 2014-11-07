@@ -53,6 +53,10 @@ bool Raven::initialize(const QString& DSN) {
     path_ = url.path();
     project_id_ = url.fileName();
 
+    int i = path_.lastIndexOf('/');
+    if (i >= 0)
+        path_ = path_.left(i);
+
     int port = url.port(80);
     if (port != 80)
         host_.append(":").append(QString::number(port));
@@ -122,9 +126,9 @@ void Raven::Send(const QJsonObject& jbody) {
     QString auth_info = QString("Sentry sentry_version=5,sentry_client=%1,sentry_timestamp=%2,sentry_key=%3,sentry_secret=%4").
         arg(client_info, QString::number(time(NULL)), public_key_, secret_key_);
 
-    // FIXME(ari): Should add path_?
-    // http://192.168.1.22:9000/api/4/store/
-    QString url = QString("%1://%2/api/%3/store/").arg(protocol_).arg(host_).arg(project_id_);
+    // http://192.168.1.x:9000/api/4/store/
+    QString url = QString("%1://%2%3/api/%4/store/").
+        arg(protocol_).arg(host_).arg(path_).arg(project_id_);
 
     QNetworkRequest request(url);
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
@@ -134,7 +138,9 @@ void Raven::Send(const QJsonObject& jbody) {
     QByteArray body = QJsonDocument(jbody).toJson(QJsonDocument::Indented);
 
     QNetworkReply* reply = network_access_manager_.post(request, body);
+
     connect(reply, SIGNAL(finished()), this, SLOT(slotFinished()));
+    connect(reply, SIGNAL(sslErrors(const QList<QSslError>&)), this, SLOT(slotSslError(const QList<QSslError>&)));
 }
 
 void Raven::slotFinished() {
@@ -149,6 +155,11 @@ void Raven::slotFinished() {
     }
 
     reply->deleteLater();
+}
+
+void Raven::slotSslError(const QList<QSslError>& e) {
+    QNetworkReply* reply = static_cast<QNetworkReply*>(sender());
+    reply->ignoreSslErrors();
 }
 
 QJsonObject Raven::GetUserInfo() {

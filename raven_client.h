@@ -65,6 +65,7 @@ public:
 
 private slots:
     void slotFinished();
+    void slotSslError(const QList<QSslError>&);
 
 private:
     // Send to Sentry server
