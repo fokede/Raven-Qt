@@ -1,4 +1,4 @@
-#include "sentryclient.h"
+﻿#include "raven_client.h"
 
 #include <QApplication>
 #include <QDebug>
@@ -181,9 +181,48 @@ QString Raven::LocalAddress() {
     return "0.0.0.0";
 }
 
-//static
+// static
 QString Raven::locationInfo(const char* file, const char* func, int line) {
     return QString("%1 in %2 at %3").arg(file).arg(func).arg(QString::number(line));
+}
+
+// static
+// UNIX log levels:
+// Emergency(level 0)
+// Alert(level 1)
+// Critical(level 2)
+// Error(level 3)
+// Warning(level 4)
+// Notice(level 5)
+// Info(level 6)
+// Debug(level 7)
+Raven::Level Raven::fromUnixLogLevel(int i) {
+    Level level;
+    switch (i) {
+    case 7:
+        level = Raven::kDebug;
+        break;
+    case 6:
+    case 5:
+        level = Raven::kInfo;
+        break;
+    case 4:
+        level = Raven::kWarning;
+        break;
+    case 3:
+    case 2:
+    case 1:
+        level = Raven::kError;
+        break;
+    case 0:
+        level = Raven::kFatal;
+        break;
+    default:
+        level = Raven::kDebug;
+        break;
+    }
+
+    return level;
 }
 
 // static

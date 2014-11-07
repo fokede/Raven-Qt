@@ -1,16 +1,7 @@
-// Sentry client for Qt5
+﻿// Sentry client for Qt5
 // Author: ari.feng (ari.feng@forensix.cn)
 //
-// This client uses protocol version 5
-// With the help of the Utils library, exceptions can be handled by setting a external backtrace handler.
-//
-// // Basic usage
-// Raven::captureMessage(RAVEN_INFO, "something interesting...");
-// 
-// // With extra data:
-// QJsonObject extra;
-// extra["key"] = "value";
-// Raven::captureMessage(RAVEN_INFO, "the message", extra);
+// This client uses sentry protocol version 5
 
 #ifndef RAVEN_QT5_H
 #define RAVEN_QT5_H
@@ -59,6 +50,10 @@ public:
     void set_user_name(const QString& name) { user_name_ = name; }
     void set_user_email(const QString& email) { user_email_ = email; }
     void set_user_data(const QString& key, const QString& value);
+
+    // Convert from UNIX log level (0-7) to sentry log level (0-4)
+    // 0 ~ 7 represents: Fatal, Alert, Critcial, Error, Warning, Notice, Info, Debug
+    static Level fromUnixLogLevel(int i);
 
     // Do not use manually, used by the RAVEN_HERE macro only.
     static QString locationInfo(const char* file, const char* func, int line);
