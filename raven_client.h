@@ -7,6 +7,7 @@
 #define RAVEN_QT5_H
 
 #include <QJsonObject>
+#include <QMap>
 #include <QObject>
 #include <QString>
 #include <QNetworkAccessManager>
@@ -76,6 +77,10 @@ private:
 
     QString LocalAddress();
 
+    void ConnectReply(QNetworkReply* reply);
+
+    int GetRequestId(QNetworkReply* reply);
+
     static QString GetLevelString(Level level);
 
 private:
@@ -84,6 +89,8 @@ private:
 
     // Maximium retry to send the log message when network failure occured.
     static const int kMaxSendRetry = 3;
+
+    static const int kInvalidRequestId = -1;
 
     bool initialized_;
 
@@ -103,6 +110,8 @@ private:
 
     // Global tags
     QJsonObject global_tags_;
+
+    QMap<int, QByteArray> pending_request_;
 
     QNetworkAccessManager network_access_manager_;
 };

@@ -1,5 +1,8 @@
 ﻿#include "raven_client.h"
 
+#include <assert.h>
+#include <time.h>
+
 #include <QApplication>
 #include <QDebug>
 #include <QHostAddress>
@@ -10,7 +13,14 @@
 #include <QNetworkRequest>
 #include <QNetworkReply>
 #include <QUuid>
-#include <time.h>
+
+namespace {
+
+int g_next_request_id;
+
+char kRequestIdProperty[] = "RequestIdProperty";
+
+}
 
 const char Raven::kClientName[] = "Raven-Qt";
 const char Raven::kClientVersion[] = "0.2";
@@ -23,7 +33,7 @@ Raven::Raven(QObject *parent)
 }
 
 Raven::~Raven() {
-
+    assert(pending_request_.isEmpty());
 }
 
 // static
@@ -138,7 +148,12 @@ void Raven::Send(const QJsonObject& jbody) {
     QByteArray body = QJsonDocument(jbody).toJson(QJsonDocument::Indented);
 
     QNetworkReply* reply = network_access_manager_.post(request, body);
+    reply->setProperty(kRequestIdProperty, QVariant(++g_next_request_id));
+    pending_request_[g_next_request_id] = body;
+    ConnectReply(reply);
+}
 
+void Raven::ConnectReply(QNetworkReply* reply) {
     connect(reply, SIGNAL(finished()), this, SLOT(slotFinished()));
     connect(reply, SIGNAL(sslErrors(const QList<QSslError>&)), this, SLOT(slotSslError(const QList<QSslError>&)));
 }
@@ -146,12 +161,32 @@ void Raven::Send(const QJsonObject& jbody) {
 void Raven::slotFinished() {
     QNetworkReply* reply = static_cast<QNetworkReply*>(sender());
 
-    QNetworkReply::NetworkError e = reply->error();
-    QByteArray res = reply->readAll();
-    if (e == QNetworkReply::NoError) {
-        qDebug() << "Sentry log ID " << res;
+    int id = GetRequestId(reply);
+    if (pending_request_.find(id) == pending_request_.end()) {
+        reply->deleteLater();
+        return;
+    }
+
+    // Deal with redirection
+    QUrl possibleRedirectUrl = reply->attribute(QNetworkRequest::RedirectionTargetAttribute).toUrl();
+    if (!possibleRedirectUrl.isEmpty() && possibleRedirectUrl != reply->url()) {
+        QNetworkRequest request = reply->request();
+        QByteArray body = pending_request_[id];
+        request.setUrl(possibleRedirectUrl);
+        QNetworkReply* new_reply = network_access_manager_.post(request, body);
+        new_reply->setProperty(kRequestIdProperty, QVariant(id));
+        ConnectReply(new_reply);
     } else {
-        qDebug() << "Failed to send log to sentry: [" << e << "]:" << res ;
+        QNetworkReply::NetworkError e = reply->error();
+        QByteArray res = reply->readAll();
+        if (e == QNetworkReply::NoError) {
+            qDebug() << "Sentry log ID " << res;
+        }
+        else {
+            qDebug() << "Failed to send log to sentry: [" << e << "]:" << res;
+        }
+        
+        pending_request_.remove(id);
     }
 
     reply->deleteLater();
@@ -160,6 +195,14 @@ void Raven::slotFinished() {
 void Raven::slotSslError(const QList<QSslError>& e) {
     QNetworkReply* reply = static_cast<QNetworkReply*>(sender());
     reply->ignoreSslErrors();
+}
+
+int Raven::GetRequestId(QNetworkReply* reply) {
+    QVariant var = reply->property(kRequestIdProperty);
+    if (var.type() != QVariant::Int)
+        return kInvalidRequestId;
+
+    return var.toInt();
 }
 
 QJsonObject Raven::GetUserInfo() {
