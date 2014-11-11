@@ -33,6 +33,7 @@ public:
     static Raven* instance();
 
     // Initialize raven client with a standard DSN string
+    // Note: Call this *after* constructing QApplication
     bool initialize(const QString& DSN);
 
     // Log to Sentry server
