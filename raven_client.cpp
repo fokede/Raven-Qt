@@ -27,19 +27,20 @@ const char Raven::kClientVersion[] = "0.2";
 
 Raven* g_client;
 
-Raven::Raven(QObject *parent)
-    : QObject(parent),
-    initialized_(false) {
+Raven::Raven()
+  : initialized_(false) {
+    g_client = this;
 }
 
 Raven::~Raven() {
     assert(pending_request_.isEmpty());
+    g_client = NULL;
 }
 
 // static
 Raven* Raven::instance() {
     if (!g_client)
-        g_client = new Raven(NULL);
+        g_client = new Raven();
 
     return g_client;
 }
@@ -241,34 +242,25 @@ QString Raven::locationInfo(const char* file, const char* func, int line) {
 }
 
 // static
-// UNIX log levels:
-// Emergency(level 0)
-// Alert(level 1)
-// Critical(level 2)
-// Error(level 3)
-// Warning(level 4)
-// Notice(level 5)
-// Info(level 6)
-// Debug(level 7)
 Raven::Level Raven::fromUnixLogLevel(int i) {
     Level level;
     switch (i) {
-    case 7:
+    case 7:  //Debug
         level = Raven::kDebug;
         break;
-    case 6:
-    case 5:
+    case 6:  //Info
+    case 5:  //Notice
         level = Raven::kInfo;
         break;
-    case 4:
+    case 4:  //Warning
         level = Raven::kWarning;
         break;
-    case 3:
-    case 2:
-    case 1:
+    case 3:  //Error
+    case 2:  //Critical
+    case 1:  //Alert
         level = Raven::kError;
         break;
-    case 0:
+    case 0:  //Emergency
         level = Raven::kFatal;
         break;
     default:

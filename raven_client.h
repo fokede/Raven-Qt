@@ -25,7 +25,7 @@ class Raven : public QObject
     Q_OBJECT
 
 public:
-    Raven(QObject *parent);
+    Raven();
     ~Raven();
 
     // Log level
