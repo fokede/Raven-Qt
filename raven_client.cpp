@@ -193,7 +193,7 @@ void Raven::slotFinished() {
     reply->deleteLater();
 }
 
-void Raven::slotSslError(const QList<QSslError>& e) {
+void Raven::slotSslError(const QList<QSslError>& ) {
     QNetworkReply* reply = static_cast<QNetworkReply*>(sender());
     reply->ignoreSslErrors();
 }
