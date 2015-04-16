@@ -33,6 +33,7 @@ Raven::Raven()
 }
 
 Raven::~Raven() {
+    waitForIdle();
     assert(pending_request_.isEmpty());
     g_client = NULL;
 }
@@ -46,6 +47,7 @@ Raven* Raven::instance() {
 }
 
 bool Raven::initialize(const QString& DSN) {
+    waitLoop_ = 0;
     // If an empty DSN is passed, you should treat it as valid option 
     // which signifies disabling the client.
     if (DSN.isEmpty()) {
@@ -76,6 +78,22 @@ bool Raven::initialize(const QString& DSN) {
 
     initialized_ = true;
     return true;
+}
+
+void Raven::waitForIdle()
+{
+    if ( waitLoop_ )
+    {
+        qCritical() << "Recursive call Raven::waitForIdle"; 
+        return;
+    }
+
+    if (pending_request_.size()) {
+        QEventLoop loop;
+        waitLoop_ = &loop;
+        loop.exec( QEventLoop::ExcludeUserInputEvents );
+        waitLoop_ = 0;
+    }
 }
 
 void Raven::set_global_tags(const QString& key, const QString& value) {
@@ -165,6 +183,7 @@ void Raven::slotFinished() {
     int id = GetRequestId(reply);
     if (pending_request_.find(id) == pending_request_.end()) {
         reply->deleteLater();
+        if ( waitLoop_ ) waitLoop_->exit();
         return;
     }
 
@@ -189,6 +208,9 @@ void Raven::slotFinished() {
         
         pending_request_.remove(id);
     }
+
+    if (pending_request_.isEmpty() && waitLoop_ ) 
+        waitLoop_->exit();
 
     reply->deleteLater();
 }

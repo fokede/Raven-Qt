@@ -10,6 +10,7 @@
 #include <QMap>
 #include <QObject>
 #include <QString>
+#include <QEventLoop>
 #include <QNetworkAccessManager>
 
 #define RAVEN_HERE Raven::locationInfo(__FILE__, __FUNCTION__, __LINE__)
@@ -36,6 +37,8 @@ public:
     // Initialize raven client with a standard DSN string
     // Note: Call this *after* constructing QApplication
     bool initialize(const QString& DSN);
+    void waitForIdle();
+
 
     // Log to Sentry server
     // Logs are grouped by parameter message
@@ -114,6 +117,7 @@ private:
     QMap<int, QByteArray> pending_request_;
 
     QNetworkAccessManager network_access_manager_;
+    QEventLoop *waitLoop_;
 };
 
 #endif // SENTRYCLIENT_H
