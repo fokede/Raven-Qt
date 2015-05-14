@@ -1,6 +1,5 @@
 ﻿#include "raven_client.h"
 
-#include <assert.h>
 #include <time.h>
 
 #include <QApplication>
@@ -34,7 +33,7 @@ Raven::Raven()
 
 Raven::~Raven() {
     waitForIdle();
-    assert(pending_request_.isEmpty());
+    Q_ASSERT(pending_request_.isEmpty());
     g_client = NULL;
 }
 
