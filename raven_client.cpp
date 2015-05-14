@@ -4,6 +4,7 @@
 
 #include <QApplication>
 #include <QDebug>
+#include <QTimer>
 #include <QHostAddress>
 #include <QHostInfo>
 #include <QJsonDocument>
@@ -89,8 +90,13 @@ void Raven::waitForIdle()
 
     if (pending_request_.size()) {
         QEventLoop loop;
+        QTimer timer;
+        timer.setSingleShot( true );
+        QObject::connect( &timer, SIGNAL( timeout() ), &loop, SLOT( quit() ) );
         waitLoop_ = &loop;
+        timer.start( 2000 );
         loop.exec( QEventLoop::ExcludeUserInputEvents );
+        if ( timer.isActive() ) qDebug() << "Raven loop ended on timeout.";
         waitLoop_ = 0;
     }
 }
@@ -182,7 +188,7 @@ void Raven::slotFinished() {
     int id = GetRequestId(reply);
     if (pending_request_.find(id) == pending_request_.end()) {
         reply->deleteLater();
-        if ( waitLoop_ ) waitLoop_->exit();
+        if ( pending_request_.isEmpty() && waitLoop_ ) waitLoop_->exit();
         return;
     }
 
