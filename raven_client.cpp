@@ -94,9 +94,11 @@ void Raven::waitForIdle()
         timer.setSingleShot( true );
         QObject::connect( &timer, SIGNAL( timeout() ), &loop, SLOT( quit() ) );
         waitLoop_ = &loop;
-        timer.start( 2000 );
+        const int timeout = 2000;
+        timer.start( timeout );
         loop.exec( QEventLoop::ExcludeUserInputEvents );
-        if ( timer.isActive() ) qDebug() << "Raven loop ended on timeout.";
+        if ( timer.isActive() ) qDebug() << "Raven client finished, took " << timeout - timer.remainingTime() << " ms";
+        else qDebug() << "Raven loop ended on timeout.";
         waitLoop_ = 0;
     }
 }
